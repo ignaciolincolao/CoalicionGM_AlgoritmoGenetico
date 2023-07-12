@@ -3,7 +3,7 @@ shopt -s expand_aliases
 source ~/.bashrc
 #alias jq=./jq-win64.exe
 
-vot=votacion22105
+vot=votacionRH0750158
 let seed=1234
 let iter=1
 cd "./out/Resultados"

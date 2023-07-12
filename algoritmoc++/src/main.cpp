@@ -16,27 +16,38 @@ using namespace std;
 using json = nlohmann::json;
 
 // Initial parameters
-int sample_size = 20;
+int sample_size = 36;
 float mutation_threshold = 0.170002;
 float selection_threshold = 0.141;
+std::string nameFile = "votes.txt";
 
 // Main function
 int main(int argc, char *argv[])
 {
 
+	// Check the parameters
+	if (argc > 1)
+	{
+		sample_size = stoi(argv[1]);
+		mutation_threshold = stod(argv[2]);
+		selection_threshold = stod(argv[3]);
+		seed = stoi(argv[4]);
+	}
+	// Initialize the random seed
+	mt.seed(seed);
 	// Create and initialize the json files for the outputs
 	ofstream results;
-	results.open("results.json");
+	results.open("resultados.json");
 	ofstream histogram;
 	histogram.open("hist.json");
 	string evolution_of_coalition = "[\n";
 	string iteration_string = "[";
 	string evolution_of_fitness = "[";
-
-
+	/*
+	std::vector<int> fbest= {1,4,5,8,9,10,11,15,17,19,20,21,22,24,25,27,30,33,34};
 
 	/// csv File
-	std::ifstream inFile("Dataset_36_19_17_seed-1689092799.csv");
+	std::ifstream inFile("data/votos/"+nameFile);
     std::vector<float> X;
     std::vector<float> Y;
 	float x_val, y_val;
@@ -67,9 +78,9 @@ int main(int argc, char *argv[])
 			distance_matrix[i][j] = euclidian_distance(X[i],Y[i],X[j],Y[j]);
 		}
 	}
-
+	*/
 	// Read good coalition
-    std::ifstream initFile("test.txt");
+    std::ifstream initFile("data/best/votes.txt");
     if (!initFile.is_open()) {
         std::cout << "No se pudo abrir el archivo." << std::endl;
         return 1;
@@ -84,16 +95,15 @@ int main(int argc, char *argv[])
         initDat.push_back(num);
     }
     initFile.close();
-
-	cout << initDat.size() << endl;
-
+	
+	
 
 	/// Json File
-	/*
+	
 	// Call the Json file
-	ifstream file("votes.json");
+	ifstream file("data/votes.json");
+	
 	json data = json::parse(file);
-
 
 
 	// Obtain the number of congressmen
@@ -114,28 +124,22 @@ int main(int argc, char *argv[])
 			distance_matrix[i][j] = euclidian_distance(data["rollcalls"][0]["votes"][i]["x"], data["rollcalls"][0]["votes"][i]["y"], data["rollcalls"][0]["votes"][j]["x"], data["rollcalls"][0]["votes"][j]["y"]);
 		}
 	}
-	*/
+	
 	// Time variable initialization for execution calculation
 	auto initial_time = chrono::high_resolution_clock::now();
-
-	// Quorum variable initialization
 	int quorum = trunc(n / 2) + 1;
-
+	// Quorum variable initialization
+	
+	
 	if(initDat.size() != quorum){
 		cout << "Error con el numero de quorum" << endl;
 		exit(1);
 	}
+	
 
-	// Check the parameters
-	if (argc > 1)
-	{
-		sample_size = stoi(argv[1]);
-		mutation_threshold = stod(argv[2]);
-		selection_threshold = stod(argv[3]);
-		seed = stoi(argv[4]);
-	}
-	// Initialize the random seed
-	mt.seed(seed);
+	
+
+
 
 	// Random number generator between 0 and 1
 	uniform_2 = uniform_real_distribution<float>(0, 1);
@@ -166,14 +170,14 @@ int main(int argc, char *argv[])
 	////////////////////////////////////////////////////////////////////
 	// --- Generate random solutions based on an initial
 	////////////////////////////////////////////////////////////////////
-
+	
 	for (size_t i = 0; i < sample_size; i++)
 	{
 		std::copy(initDat.begin(), initDat.end(), solutions[i].coalition);
 		sort(solutions[i].coalition, solutions[i].coalition + quorum, &array_sort);
 		
 	}
-	for (size_t i = 1; i < sample_size; i++)
+	for (size_t i = 0; i < sample_size; i++)
 	{
 		int *which_get = (int *)malloc(sizeof(int));
 		sample(which_get, quorum, 1);
@@ -204,14 +208,16 @@ int main(int argc, char *argv[])
 	{
 		solutions[i].fitness = evaluate_solution(solutions[i].coalition, distance_matrix, quorum);
 	}
-
+	
+	
+	/*
     for (int i = 0; i < sample_size; i++) {
         for (int j = 0; j < quorum; j++) {
             std::cout << solutions[i].coalition[j] << " ";
         }
         std::cout << std::endl;
     }
-	exit(0);
+	*/
 	
 
 	//////////////////////////  End //////////////////////////////////////
@@ -234,7 +240,7 @@ int main(int argc, char *argv[])
 	cumulative_probability[0] = 0.1;
 
 	// Calculate the probability of selection and the cumulative probability
-	for (size_t i = 1; i < sample_size; i++)
+	for (size_t i = 0; i < sample_size; i++)
 	{
 		probability_of_selection[i] = selection_threshold * pow(1 - selection_threshold, i);
 		cumulative_probability[i] = summation(probability_of_selection, i);
@@ -242,7 +248,7 @@ int main(int argc, char *argv[])
 	cumulative_probability[sample_size - 1] = 1;
 
 	// Initialize the general variables
-	int maximum_k_value = 200 * trunc((n + quorum) / sample_size);
+	int maximum_k_value = 10;
 	int i = 0;
 	int k = 0;
 	int iteration = 0;
@@ -290,8 +296,7 @@ int main(int argc, char *argv[])
 	// Start the algorithm
 	while (k < maximum_k_value)
 	{
-		// Increase the iteration counter for the output file
-		iteration++;
+
 
 		// Selection of the chromosomes to crossover
 		selection_1 = smallest_greater(cumulative_probability, sample_size, (float)uniform_2(mt));
@@ -587,6 +592,7 @@ int main(int argc, char *argv[])
 		{
 			// reset the counter
 			i = 0;
+			k = k + 1;
 			counter_of_new_chromosomes = 0;
 
 			// sort the new population
@@ -626,9 +632,11 @@ int main(int argc, char *argv[])
 			}
 			float *new_probability_of_selection = (float *)malloc(sample_size * sizeof(float));
 			float *new_cumulative_probability = (float *)malloc(sample_size * sizeof(float));
+			
 			// If after finishing the previous while the flag flag_2 is false
 			if (flag_2 == false)
 			{
+				
 				// Change the worst chromosome of the current population by the best chromosome of the new population
 				worst_chromosome = sample_size - 1;
 				memcpy(new_chromosome[worst_chromosome], solutions[0].coalition, quorum * sizeof(int));
@@ -692,13 +700,33 @@ int main(int argc, char *argv[])
 			// Free the memory
 			free(new_probability_of_selection);
 			free(new_cumulative_probability);
+			// Increase the iteration counter for the output file
+			iteration++;
+			
 		}
 		// Free the memory
 		free(chromosome_1);
 		free(chromosome_2);
 		free(crossover);
 		// Increment the counter of iterations
-		k = k + 1;
+		
+		/*
+		cout << iteration << endl;
+		for (int mm=0; mm < fbest.size(); mm++){
+			if(solutions[0].coalition[mm] != fbest[mm]){
+				for(int ll=0; ll < fbest.size(); ll++){
+					cout << solutions[0].coalition[ll] << " ";
+				}
+				cout << endl;
+				for(int ll=0; ll < fbest.size(); ll++){
+					cout << fbest[ll] << " ";
+				}
+				cout << endl;
+				cout << "error" << endl;
+				//exit(1);
+			}
+		}
+		*/
 	}
 	// Close the array inside the json file
 	replace(iteration_string.end() - 1, iteration_string.end(), ',', ']');
@@ -710,13 +738,21 @@ int main(int argc, char *argv[])
 	float time_taken = chrono::duration_cast<chrono::nanoseconds>(final_time - initial_time).count();
 	// Convert the time taken by the algorithm to seconds
 	time_taken *= 1e-9;
-
+	bool arrive = true;
+	/* Activar en caso de otros puntos
+	for(int mm=0; mm < fbest.size(); mm++){
+		if(solutions[0].coalition[mm] != fbest[mm]){
+			arrive = false;
+		}
+	}
+	*/ 
 	// Save the information collected in a json
 	results << "{\n\"sample_size\": " << sample_size << ",\n";
 	results << "\"mutation_threshold\": " << mutation_threshold << ",\n";
 	results << "\"selection_threshold\": " << selection_threshold << ",\n";
 	results << "\"seed\": " << seed << ",\n";
 	results << "\"number_of_iteration\": " << iteration << ",\n";
+	results << "\"arrive\": " << arrive << ",\n";
 	results << "\"fitness\": " << fixed << solutions[0].fitness << setprecision(9) << ",\n";
 	results << "\"time_taken\": " << fixed << time_taken << setprecision(9) << ",\n";
 	results << "\"coalition\": [";
@@ -735,6 +771,7 @@ int main(int argc, char *argv[])
 	// Save the information collected in a histogram json
 	histogram << "{\n\"iterations\": " << iteration_string << ",\n";
 	histogram << "\"fitness\": " << evolution_of_fitness << ",\n";
+	histogram << "\"arrive\": " << arrive << ",\n";
 	histogram << "\"coalition\": " << evolution_of_coalition << "\n}";
 
 	// Free the memory

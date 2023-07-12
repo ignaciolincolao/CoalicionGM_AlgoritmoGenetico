@@ -21,9 +21,9 @@ do
                 echo "-# $iter/1000 #-"
                 ((seed+=$repeat*2))
                 ./algortimoc++ $m_val $pTresh_val $pr_val $seed || touch "Resultados/$vot/ERRORseed=$seed_iter=$iter.txt"
-                cp resultados.json "Resultados/$vot/m_$m_val/pTresh_$pTresh_val/pr_$pr_val/resultados_rep_${repeat}_seed_$seed.json" 
+                cp results.json "Resultados/$vot/m_$m_val/pTresh_$pTresh_val/pr_$pr_val/resultados_rep_${repeat}_seed_$seed.json" 
                 cp hist.json "Resultados/$vot/m_$m_val/pTresh_$pTresh_val/pr_$pr_val/histograma_rep_${repeat}_seed_$seed.json" 
-                rm resultados.json
+                rm results.json
                 rm hist.json
                 ((iter+=1))
             done

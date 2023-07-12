@@ -21,6 +21,9 @@ file(GLOB all_DATA
 add_executable (algortimoc++ ${all_SRCS} ${all_DATA})
 set_target_properties(algortimoc++ PROPERTIES LINKER_LANGUAGE CXX)
 file(COPY ${all_DATA} DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+add_custom_command(TARGET algortimoc++ PRE_BUILD
+                   COMMAND ${CMAKE_COMMAND} -E copy_directory
+                   ${CMAKE_SOURCE_DIR}/data $<TARGET_FILE_DIR:algortimoc++>/data)
 
 include(FetchContent)
 
