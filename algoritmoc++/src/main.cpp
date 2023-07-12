@@ -16,16 +16,13 @@ using namespace std;
 using json = nlohmann::json;
 
 // Initial parameters
-int sample_size = 38;
-double mutation_threshold = 0.170002;
-double selection_threshold = 0.141;
+int sample_size = 20;
+float mutation_threshold = 0.170002;
+float selection_threshold = 0.141;
 
 // Main function
 int main(int argc, char *argv[])
 {
-	// Call the Json file
-	ifstream file("votes.json");
-	json data = json::parse(file);
 
 	// Create and initialize the json files for the outputs
 	ofstream results;
@@ -36,14 +33,77 @@ int main(int argc, char *argv[])
 	string iteration_string = "[";
 	string evolution_of_fitness = "[";
 
+
+
+	/// csv File
+	std::ifstream inFile("Dataset_36_19_17_seed-1689092799.csv");
+    std::vector<float> X;
+    std::vector<float> Y;
+	float x_val, y_val;
+	char actualSeparator;
+	while (inFile >> x_val >> actualSeparator >> y_val) {
+		if (actualSeparator != ',') {
+			std::cerr << "El delimitador no coincide con ,"  << std::endl;
+			exit(EXIT_FAILURE);
+		}
+		X.push_back(x_val);
+		Y.push_back(y_val);
+	}
+
+	int n = X.size();
+	
+	// Initialize the distance matrix
+	float **distance_matrix = (float **)malloc(n * sizeof(float *));
+	for (size_t i = 0; i < n; i++)
+	{
+		distance_matrix[i] = (float *)malloc(n * sizeof(float));
+	}
+
+	// Fill the distance matrix
+	for (size_t i = 0; i < n; i++)
+	{
+		for (size_t j = 0; j < n; j++)
+		{
+			distance_matrix[i][j] = euclidian_distance(X[i],Y[i],X[j],Y[j]);
+		}
+	}
+
+	// Read good coalition
+    std::ifstream initFile("test.txt");
+    if (!initFile.is_open()) {
+        std::cout << "No se pudo abrir el archivo." << std::endl;
+        return 1;
+    }
+    std::string line;
+    std::getline(initFile, line);
+    std::vector<int> initDat;
+    std::stringstream ss(line);
+    std::string valInit;
+    while (std::getline(ss, valInit, ',')) {
+        int num = std::stoi(valInit); 
+        initDat.push_back(num);
+    }
+    initFile.close();
+
+	cout << initDat.size() << endl;
+
+
+	/// Json File
+	/*
+	// Call the Json file
+	ifstream file("votes.json");
+	json data = json::parse(file);
+
+
+
 	// Obtain the number of congressmen
 	int n = data["rollcalls"][0]["votes"].size();
 
 	// Initialize the distance matrix
-	double **distance_matrix = (double **)malloc(n * sizeof(double *));
+	float **distance_matrix = (float **)malloc(n * sizeof(float *));
 	for (size_t i = 0; i < n; i++)
 	{
-		distance_matrix[i] = (double *)malloc(n * sizeof(double));
+		distance_matrix[i] = (float *)malloc(n * sizeof(float));
 	}
 
 	// Fill the distance matrix
@@ -54,12 +114,17 @@ int main(int argc, char *argv[])
 			distance_matrix[i][j] = euclidian_distance(data["rollcalls"][0]["votes"][i]["x"], data["rollcalls"][0]["votes"][i]["y"], data["rollcalls"][0]["votes"][j]["x"], data["rollcalls"][0]["votes"][j]["y"]);
 		}
 	}
-
+	*/
 	// Time variable initialization for execution calculation
 	auto initial_time = chrono::high_resolution_clock::now();
 
 	// Quorum variable initialization
 	int quorum = trunc(n / 2) + 1;
+
+	if(initDat.size() != quorum){
+		cout << "Error con el numero de quorum" << endl;
+		exit(1);
+	}
 
 	// Check the parameters
 	if (argc > 1)
@@ -73,7 +138,7 @@ int main(int argc, char *argv[])
 	mt.seed(seed);
 
 	// Random number generator between 0 and 1
-	uniform_2 = uniform_real_distribution<double>(0, 1);
+	uniform_2 = uniform_real_distribution<float>(0, 1);
 
 	// Initialize the vector of the solutions
 	vector<Solution_structure> solutions;
@@ -84,14 +149,72 @@ int main(int argc, char *argv[])
 		solutions.push_back(Solution_structure());
 		solutions[i].coalition = (int *)malloc(quorum * sizeof(int));
 	}
+	////////////////////////////////////////////////////////////////////
 	// Fill the vector of the solutions with random solutions and evaluate them
+	//  --- Generate random solutions
+	///////////////////////////////////////////////////////////////////
+	/*
 	for (size_t i = 0; i < sample_size; i++)
 	{
 		sample(solutions[i].coalition, n, quorum);
 		sort(solutions[i].coalition, solutions[i].coalition + quorum, &array_sort);
 		solutions[i].fitness = evaluate_solution(solutions[i].coalition, distance_matrix, quorum);
 	}
+	*/
+	//////////////////////////  End //////////////////////////////////////
 
+	////////////////////////////////////////////////////////////////////
+	// --- Generate random solutions based on an initial
+	////////////////////////////////////////////////////////////////////
+
+	for (size_t i = 0; i < sample_size; i++)
+	{
+		std::copy(initDat.begin(), initDat.end(), solutions[i].coalition);
+		sort(solutions[i].coalition, solutions[i].coalition + quorum, &array_sort);
+		
+	}
+	for (size_t i = 1; i < sample_size; i++)
+	{
+		int *which_get = (int *)malloc(sizeof(int));
+		sample(which_get, quorum, 1);
+		int **matrix_not_in_chromosome_1 = nullptr;
+		int *base_array = create_array(n);
+		matrix_not_in_chromosome_1 = not_in(base_array, solutions[i].coalition, n, quorum);
+		int *not_in_chromosome_1 = nullptr;
+		not_in_chromosome_1 = matrix_not_in_chromosome_1[0];
+		int *which_insert = (int *)malloc(sizeof(int));
+		sample_array(which_insert, 1, not_in_chromosome_1, matrix_not_in_chromosome_1[1][0]);
+
+		// Realize the mutation and sort
+		solutions[i].coalition[which_get[0]] = which_insert[0];
+		sort(solutions[i].coalition, solutions[i].coalition + quorum, &array_sort);
+
+		// Free the memory
+		free(base_array);
+		free(which_get);
+		free(matrix_not_in_chromosome_1[0]);
+		free(matrix_not_in_chromosome_1[1]);
+		free(matrix_not_in_chromosome_1);
+		free(which_insert);
+	}
+
+
+
+	for (size_t i = 0; i < sample_size; i++)
+	{
+		solutions[i].fitness = evaluate_solution(solutions[i].coalition, distance_matrix, quorum);
+	}
+
+    for (int i = 0; i < sample_size; i++) {
+        for (int j = 0; j < quorum; j++) {
+            std::cout << solutions[i].coalition[j] << " ";
+        }
+        std::cout << std::endl;
+    }
+	exit(0);
+	
+
+	//////////////////////////  End //////////////////////////////////////
 	// Sort the vector of the solutions
 	sort(solutions.begin(), solutions.end(), &vector_initial_solutions_sort);
 
@@ -105,8 +228,8 @@ int main(int argc, char *argv[])
 	evolution_of_coalition = evolution_of_coalition + ",";
 
 	// Initialize the probability variables
-	double *probability_of_selection = (double *)malloc(sample_size * sizeof(double));
-	double *cumulative_probability = (double *)malloc(sample_size * sizeof(double));
+	float *probability_of_selection = (float *)malloc(sample_size * sizeof(float));
+	float *cumulative_probability = (float *)malloc(sample_size * sizeof(float));
 	probability_of_selection[0] = 0.1;
 	cumulative_probability[0] = 0.1;
 
@@ -125,14 +248,14 @@ int main(int argc, char *argv[])
 	int iteration = 0;
 	int selection_1;
 	int selection_2;
-	double probability_of_mutation;
+	float probability_of_mutation;
 	bool flag_1;
 	bool flag_2;
 	int index_to_pop;
 	int counter_of_new_chromosomes = 0;
 	int worst_chromosome;
 	int minimum_value;
-	double previous_fitness;
+	float previous_fitness;
 
 	// Initialize the variables of the new populations and their respective fitness
 	int **new_chromosome = (int **)malloc(sample_size * sizeof(int *));
@@ -140,7 +263,7 @@ int main(int argc, char *argv[])
 	{
 		new_chromosome[a] = (int *)malloc(quorum * sizeof(int));
 	}
-	double *new_fitness_value = (double *)malloc(sample_size * sizeof(double));
+	float *new_fitness_value = (float *)malloc(sample_size * sizeof(float));
 
 	// Extra pointers
 	bool *array_of_boolean_1 = nullptr;
@@ -171,12 +294,12 @@ int main(int argc, char *argv[])
 		iteration++;
 
 		// Selection of the chromosomes to crossover
-		selection_1 = smallest_greater(cumulative_probability, sample_size, (double)uniform_2(mt));
-		selection_2 = smallest_greater(cumulative_probability, sample_size, (double)uniform_2(mt));
+		selection_1 = smallest_greater(cumulative_probability, sample_size, (float)uniform_2(mt));
+		selection_2 = smallest_greater(cumulative_probability, sample_size, (float)uniform_2(mt));
 
 		// They can't be the same
 		while (selection_1 == selection_2)
-			selection_2 = smallest_greater(cumulative_probability, sample_size, (double)uniform_2(mt));
+			selection_2 = smallest_greater(cumulative_probability, sample_size, (float)uniform_2(mt));
 
 		// Save the chromosomes previously selected
 		int *chromosome_1 = (int *)malloc(quorum * sizeof(int));
@@ -271,7 +394,7 @@ int main(int argc, char *argv[])
 		free(selection_of_crossover_21);
 
 		// Create the probability of mutation
-		probability_of_mutation = (double)uniform_2(mt);
+		probability_of_mutation = (float)uniform_2(mt);
 
 		// Check if the chromosome_1 mutates
 		if (probability_of_mutation < mutation_threshold)
@@ -300,7 +423,7 @@ int main(int argc, char *argv[])
 			free(which_insert);
 		}
 		// Create the probability of mutation
-		probability_of_mutation = (double)uniform_2(mt);
+		probability_of_mutation = (float)uniform_2(mt);
 
 		// Check if the chromosome_2 mutates
 		if (probability_of_mutation < mutation_threshold)
@@ -501,8 +624,8 @@ int main(int argc, char *argv[])
 				// Free the memory
 				free(array_of_boolean_1);
 			}
-			double *new_probability_of_selection = (double *)malloc(sample_size * sizeof(double));
-			double *new_cumulative_probability = (double *)malloc(sample_size * sizeof(double));
+			float *new_probability_of_selection = (float *)malloc(sample_size * sizeof(float));
+			float *new_cumulative_probability = (float *)malloc(sample_size * sizeof(float));
 			// If after finishing the previous while the flag flag_2 is false
 			if (flag_2 == false)
 			{
@@ -511,14 +634,14 @@ int main(int argc, char *argv[])
 				memcpy(new_chromosome[worst_chromosome], solutions[0].coalition, quorum * sizeof(int));
 				new_fitness_value[worst_chromosome] = solutions[0].fitness;
 				order(new_fitness_value, new_chromosome, quorum, sample_size);
-				memcpy(new_probability_of_selection, probability_of_selection, sample_size * sizeof(double));
-				memcpy(new_cumulative_probability, cumulative_probability, sample_size * sizeof(double));
+				memcpy(new_probability_of_selection, probability_of_selection, sample_size * sizeof(float));
+				memcpy(new_cumulative_probability, cumulative_probability, sample_size * sizeof(float));
 			}
 			else
 			{
 				// Otherwise we keep the probability and the cumulative probability
-				memcpy(new_probability_of_selection, probability_of_selection, sample_size * sizeof(double));
-				memcpy(new_cumulative_probability, cumulative_probability, sample_size * sizeof(double));
+				memcpy(new_probability_of_selection, probability_of_selection, sample_size * sizeof(float));
+				memcpy(new_cumulative_probability, cumulative_probability, sample_size * sizeof(float));
 			}
 			// Change the current population by the new population
 			for (size_t a = 0; a < sample_size; a++)
@@ -584,7 +707,7 @@ int main(int argc, char *argv[])
 
 	// Stop the clock
 	auto final_time = chrono::high_resolution_clock::now();
-	double time_taken = chrono::duration_cast<chrono::nanoseconds>(final_time - initial_time).count();
+	float time_taken = chrono::duration_cast<chrono::nanoseconds>(final_time - initial_time).count();
 	// Convert the time taken by the algorithm to seconds
 	time_taken *= 1e-9;
 

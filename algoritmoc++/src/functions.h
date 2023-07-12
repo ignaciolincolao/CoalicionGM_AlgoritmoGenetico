@@ -17,7 +17,7 @@ int seed = 2417704;
 
 // Initializing the random number generator
 uniform_int_distribution<int> uniform_1;
-uniform_real_distribution<double> uniform_2;
+uniform_real_distribution<float> uniform_2;
 uniform_int_distribution<int> pop_selection;
 random_device rng;
 default_random_engine generator(seed);
@@ -27,7 +27,7 @@ mt19937 mt{rng()};
 struct Solution_structure
 {
 	int *coalition;
-	double fitness;
+	float fitness;
 };
 
 // Boolean functions to check if a vector or array is sorted
@@ -41,16 +41,16 @@ bool vector_initial_solutions_sort(Solution_structure const &lvd, Solution_struc
 }
 
 // Function to calculate the distance between two points
-double euclidian_distance(double x1, double y1, double x2, double y2)
+float euclidian_distance(float x1, float y1, float x2, float y2)
 {
-	double calculation = pow(pow((x2 - x1), 2) + pow((y2 - y1), 2), 1 / (double)2);
+	float calculation = pow(pow((x2 - x1), 2) + pow((y2 - y1), 2), 1 / (float)2);
 	return calculation;
 }
 
 // Function to evaluate the solutions and return the fitness value
-double evaluate_solution(int *pos, double **mat, int length)
+float evaluate_solution(int *pos, float **mat, int length)
 {
-	double sum = 0;
+	float sum = 0;
 	for (size_t i = 0; i <= (length - 2); i++)
 	{
 		for (size_t j = i + 1; j <= (length - 1); j++)
@@ -62,9 +62,9 @@ double evaluate_solution(int *pos, double **mat, int length)
 }
 
 // Function to sum the values of an array_of_int
-double summation(double *array, int length)
+float summation(float *array, int length)
 {
-	double sum = 0;
+	float sum = 0;
 	for (size_t i = 0; i <= length; i++)
 	{
 		sum = sum + array[i];
@@ -87,7 +87,7 @@ int summation_of_booleans(bool *array, int length)
 }
 
 // Function to get the position of the first value in an array that is smaller than a given value
-int smallest_greater(double *seq, int length, double value)
+int smallest_greater(float *seq, int length, float value)
 {
 	int i = 0;
 	bool flag = true;
@@ -140,10 +140,11 @@ void sample(int *array_of_int, int limit, int length)
 	}
 }
 
+
 // Function to sort an array from smallest to largest and apply those changes to a matrix
-void order(double *fitness, int **chromosome, int quorum, int sample_size)
+void order(float *fitness, int **chromosome, int quorum, int sample_size)
 {
-	double temporal_variable = 0;
+	float temporal_variable = 0;
 	int *arrTemp = (int *)malloc(quorum * sizeof(int));
 	for (size_t i = 0; i < sample_size; i++)
 	{
